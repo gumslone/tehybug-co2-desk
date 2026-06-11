@@ -2,7 +2,7 @@
 
 # TeHyBug CO2 Desk Sensor Firmware
 
-<img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_desk_firmware/images/tehybug_co2_desk.jpg?raw=true" width=500>
+<img src="images/tehybug_co2_desk.jpg" width=500>
 
 TeHyBug firmware for SCD4X and Senseair S8 sensor with E-Ink Display and additional external sensors like AHT10 and BMX280.
 
@@ -21,6 +21,18 @@ Order your device here: https://www.tindie.com/products/30173/
 SCD4X sensor has an automatic calibration and usually doesnt need to be calibrated.
 Only temperature and humidity of SD4X requires a calibration. To have a more precise temperature and humidity measurements with additional barometric air pressure, its recommended to use the external tehybug universal sensor.
 
+## Building from source
+
+With [arduino-cli](https://arduino.github.io/arduino-cli/) and the esp8266 core installed:
+
+```
+./build.sh            # release build (quiet serial) for esp8285, nodemcuv2, d1_mini
+./build.sh debug      # verbose serial logging (DEBUG_ENABLED=1)
+./build.sh all        # both
+```
+
+Binaries land in `build/<board>/<mode>/`; a release build also refreshes the prebuilt `tehybug_co2_desk_firmware.ino.esp8285.bin`.
+
 ## How to program/flash the board
 To flash firmware use the .esp8285.bin file.
 For flashing and programming you can use ARDUINO IDE, select there generic ESP8285 board.
@@ -30,7 +42,12 @@ Also you can use the [ESPTool](https://github.com/espressif/esptool) to flash bi
 
 To update the firmware from OTA WebInterface open http://tehybug.local/update in your browser, if this doesnt work, try to find out its IP from your router admin menu or use any local network ip scanner app for your mobile phone to get the device ip and then open http://<ip_address<ip address>>/update with your browser.
 
-To show the temperature in Fahrenheit instead of Celsius, open http://tehybug.local/config or http://<ip_address<ip address>>/config with your browser to save the configuration.
+## Built-in settings & manual page
+
+Open http://tehybug.local/config (or `http://<ip address>/config`) in your browser. Besides the settings (temperature unit, pressure unit, LED brightness) the page documents the device itself: LED color thresholds, a hardware-button cheat sheet, a live demo of the e-paper refresh pattern and the MQTT command reference.
+
+<img src="images/config_page.png" width="500">
+
 
 For the update page you will have to provide a username and a password:
   
@@ -39,15 +56,14 @@ Username: TeHyBug
 Password: FreshAirMakesSense
 
 ## Calibration
-SCD40 and SCD41 come precalibrated and usually dont need require any calibration but in some unsommon cases you can force the sensor calibration. 
-1. Put your device outdoors to a fresh air.
-2. Hold the IO_4 Button pressed for 15 seconds.
-3. Release the button.
-4. There will be a screen message that the calibration has started. (no message? then retry with step 2)
-5. Wait for 15 minutes until the calibration is finished and the led will become green.
+SCD40 and SCD41 come precalibrated and usually don't require any calibration, but in some uncommon cases you can force the sensor calibration.
+1. Put your device outdoors to fresh air.
+2. Hold the IO_4 Button pressed for about 1 second, then release it.
+3. There will be a screen message that the calibration has started. (no message? then retry with step 2)
+4. Wait until the display reports the calibration result (the routine takes about 6 minutes: a few warm-up readings, a 5-minute settling period, then the sensor is set to the outdoor 400 ppm reference).
  
 ## Buttons
-<img src="https://raw.githubusercontent.com/gumslone/tehybug/master/tehybug_co2_desk_firmware/images/desk%20tehybug%20co2%20buttons.drawio.png" width=500>
+<img src="images/desk%20tehybug%20co2%20buttons.drawio.png" width=500>
 
 
 ### Mode Button
@@ -65,7 +81,7 @@ SCD40 and SCD41 come precalibrated and usually dont need require any calibration
 
 ### IO_4 Button
 
-- hold for 15 seconds to force calibration
+- hold for about 1 second to force calibration (see the Calibration section)
 
 ## Pinmapping
   
