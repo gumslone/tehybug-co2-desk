@@ -1,0 +1,73 @@
+name: Build and release firmware
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    # Run for manual dispatch, or when a PR from development was merged into main
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.merged == true &&
+       github.event.pull_request.head.ref == 'development')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Install arduino-cli
+        uses: arduino/setup-arduino-cli@v2
+        with:
+          version: "1.0.3"
+
+      - name: Install esp8266 core (pinned)
+        run: |
+          arduino-cli config init --additional-urls https://arduino.esp8266.com/stable/package_esp8266com_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp8266:esp8266@2.7.4
+
+      - name: Build all boards and modes
+        run: ./build.sh all
+
+      - name: Determine release tag from firmware VERSION
+        id: ver
+        run: |
+          VERSION=$(grep -oE 'VERSION = "[0-9.]+"' tehybug_co2_desk_firmware.ino | grep -oE '[0-9.]+')
+          test -n "$VERSION"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Firmware version: $VERSION"
+
+      - name: Collect release assets
+        run: |
+          mkdir -p dist
+          for board in esp8285 nodemcuv2 d1_mini; do
+            for mode in release debug; do
+              cp "build/$board/$mode/tehybug_co2_desk_firmware.ino.bin" \
+                 "dist/tehybug_co2_desk_firmware.$board.$mode.bin"
+            done
+          done
+          ls -la dist
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.ver.outputs.tag }}"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG exists; uploading assets with --clobber"
+            gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" dist/* \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "TeHyBug CO2 Desk firmware $TAG" \
+              --notes "Automated build of firmware version ${TAG#v} for esp8285 (TeHyBug hardware), nodemcuv2 and d1_mini, in release and debug (verbose serial) variants. Flash the esp8285 release binary unless you know you need another one."
+          fi
