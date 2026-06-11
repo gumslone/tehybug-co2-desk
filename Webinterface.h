@@ -86,8 +86,9 @@ a{color:var(--accent)}
 <section>
 <h2>About this device</h2>
 <p>The TeHyBug CO2 Desk is a desk air-quality monitor: an ESP8266 with a
-1.54&Prime; 200&times;200 e-paper display and two RGB indicator LEDs. It auto-detects
-the sensors connected to its I&sup2;C bus on boot:</p>
+1.5&Prime; e-paper display (200&times;200, or 152&times;152 on the small-panel model)
+and two RGB indicator LEDs. It auto-detects the sensors connected to its
+I&sup2;C bus on boot:</p>
 <table>
 <tr><th>Sensor</th><th>Measures</th><th>I&sup2;C address</th></tr>
 <tr><td>SCD4x (SCD40/41)</td><td>CO2, temperature, humidity</td><td><code>0x62</code></td></tr>

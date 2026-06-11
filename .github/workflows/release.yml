@@ -51,8 +51,10 @@ jobs:
           mkdir -p dist
           for board in esp8285 nodemcuv2 d1_mini; do
             for mode in release debug; do
-              cp "build/$board/$mode/tehybug_co2_desk_firmware.ino.bin" \
-                 "dist/tehybug_co2_desk_firmware.$board.$mode.bin"
+              for display in 200x200 152x152; do
+                cp "build/$board/$mode/$display/tehybug_co2_desk_firmware.ino.bin" \
+                   "dist/tehybug_co2_desk_firmware.$board.$display.$mode.bin"
+              done
             done
           done
           ls -la dist
@@ -69,5 +71,5 @@ jobs:
             gh release create "$TAG" dist/* \
               --repo "$GITHUB_REPOSITORY" \
               --title "TeHyBug CO2 Desk firmware $TAG" \
-              --notes "Automated build of firmware version ${TAG#v} for esp8285 (TeHyBug hardware), nodemcuv2 and d1_mini, in release and debug (verbose serial) variants. Flash the esp8285 release binary unless you know you need another one."
+              --notes "Automated build of firmware version ${TAG#v} for esp8285 (TeHyBug hardware), nodemcuv2 and d1_mini, in release and debug (verbose serial) variants, each for both e-paper panels: 200x200 (1.50\" GxDEPG0150BN2, the common one) and 152x152 (1.54\" GxDEPG0154BxS800FxX_BW). Flash esp8285.200x200.release unless you know you need another one."
           fi

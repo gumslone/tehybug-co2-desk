@@ -8,9 +8,14 @@
 #   debug    - DEBUG_ENABLED=1: verbose serial logging at 115200 baud
 #   all      - both modes
 #
-# Binaries land in build/<board>/<mode>/. A release build for the esp8285
-# (the board the TeHyBug actually uses) also refreshes the prebuilt
-# tehybug_co2_desk_firmware.ino.esp8285.bin shipped in the repo root.
+# Each mode is built for both display panels the device ships with:
+#   200x200 - 1.50" GxDEPG0150BN2 (default)
+#   152x152 - 1.54" GxDEPG0154BxS800FxX_BW (-DDISPLAY_152X152=1)
+#
+# Binaries land in build/<board>/<mode>/<display>/. A release build for the
+# esp8285 (the board the TeHyBug actually uses) with the default 200x200
+# panel also refreshes the prebuilt tehybug_co2_desk_firmware.ino.esp8285.bin
+# shipped in the repo root.
 #
 # If a ./libraries directory exists (vendored libraries), it is used
 # exclusively; otherwise the default arduino-cli user libraries apply.
@@ -30,6 +35,9 @@ SKETCH_NAME="tehybug_co2_desk_firmware"
 # esp8285 is the TeHyBug hardware; the others are common dev boards
 # named in the firmware header.
 BOARDS=(esp8285 nodemcuv2 d1_mini)
+
+# E-paper panel variants (see src/display/DisplayManager.h)
+DISPLAYS=(200x200 152x152)
 
 # Menu options matching the Arduino IDE settings the device is flashed
 # with. esp8285: 2MB flash with 64KB FS / ~992KB OTA (the 1MB default
@@ -63,18 +71,24 @@ if [ -d "$REPO_DIR/libraries" ]; then
 fi
 
 build_one() {
-    local board="$1" mode="$2"
-    local out_dir="$REPO_DIR/build/$board/$mode"
-    local mode_args=()
-    if [ "$mode" = debug ]; then
-        mode_args=(--build-property "compiler.cpp.extra_flags=-DDEBUG_ENABLED=1")
+    local board="$1" mode="$2" display="$3"
+    local out_dir="$REPO_DIR/build/$board/$mode/$display"
+
+    # Both the debug switch and the panel choice go through the same
+    # extra_flags build property, so assemble them together.
+    local extra_flags=""
+    [ "$mode" = debug ] && extra_flags+=" -DDEBUG_ENABLED=1"
+    [ "$display" = 152x152 ] && extra_flags+=" -DDISPLAY_152X152=1"
+    local flag_args=()
+    if [ -n "$extra_flags" ]; then
+        flag_args=(--build-property "compiler.cpp.extra_flags=$extra_flags")
     fi
 
-    echo "=== $board / $mode ==="
+    echo "=== $board / $mode / $display ==="
     arduino-cli compile \
         --fqbn "$(fqbn_for "$board")" \
         "${LIB_ARGS[@]}" \
-        ${mode_args[0]+"${mode_args[@]}"} \
+        ${flag_args[0]+"${flag_args[@]}"} \
         --output-dir "$out_dir" \
         "$SHIM" \
         2>&1 | grep -E "^(Der Sketch|Globale|Sketch uses|Global variables)" || true
@@ -84,7 +98,7 @@ build_one() {
     echo "    -> $bin ($(wc -c < "$bin" | tr -d ' ') bytes)"
 
     # Keep the prebuilt binary in the repo root current.
-    if [ "$board" = esp8285 ] && [ "$mode" = release ]; then
+    if [ "$board" = esp8285 ] && [ "$mode" = release ] && [ "$display" = 200x200 ]; then
         cp "$bin" "$REPO_DIR/$SKETCH_NAME.ino.esp8285.bin"
         echo "    -> refreshed $SKETCH_NAME.ino.esp8285.bin"
     fi
@@ -95,7 +109,9 @@ MODES=("$MODE")
 
 for board in "${BOARDS[@]}"; do
     for mode in "${MODES[@]}"; do
-        build_one "$board" "$mode"
+        for display in "${DISPLAYS[@]}"; do
+            build_one "$board" "$mode" "$display"
+        done
     done
 done
 

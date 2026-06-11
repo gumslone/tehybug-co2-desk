@@ -31,7 +31,7 @@ With [arduino-cli](https://arduino.github.io/arduino-cli/) and the esp8266 core 
 ./build.sh all        # both
 ```
 
-Binaries land in `build/<board>/<mode>/`; a release build also refreshes the prebuilt `tehybug_co2_desk_firmware.ino.esp8285.bin`.
+Every build runs for both e-paper panel variants: **200x200** (1.50" GxDEPG0150BN2, the common one) and **152x152** (1.54" GxDEPG0154BxS800FxX_BW). Binaries land in `build/<board>/<mode>/<display>/`; a release build also refreshes the prebuilt `tehybug_co2_desk_firmware.ino.esp8285.bin` (200x200 variant). GitHub releases carry all variants named `tehybug_co2_desk_firmware.<board>.<display>.<mode>.bin`.
 
 ## How to program/flash the board
 To flash firmware use the .esp8285.bin file.
