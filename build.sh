@@ -31,6 +31,18 @@ SKETCH_NAME="tehybug_co2_desk_firmware"
 # named in the firmware header.
 BOARDS=(esp8285 nodemcuv2 d1_mini)
 
+# Menu options matching the Arduino IDE settings the device is flashed
+# with. esp8285: 2MB flash with 64KB FS / ~992KB OTA (the 1MB default
+# would leave too little OTA room for this ~530KB sketch and put the
+# filesystem at the wrong address). ssl=basic mirrors BEARSSL_SSL_BASIC
+# from platformio.ini. Everything else is the core default.
+fqbn_for() {
+    case "$1" in
+        esp8285) echo "esp8266:esp8266:esp8285:eesz=2M64,ssl=basic" ;;
+        *)       echo "esp8266:esp8266:$1:ssl=basic" ;;
+    esac
+}
+
 # arduino-cli requires the sketch directory to be named like the .ino,
 # but this repo directory is not. Build through a symlink shim instead
 # of renaming files.
@@ -60,7 +72,7 @@ build_one() {
 
     echo "=== $board / $mode ==="
     arduino-cli compile \
-        --fqbn "esp8266:esp8266:$board" \
+        --fqbn "$(fqbn_for "$board")" \
         "${LIB_ARGS[@]}" \
         ${mode_args[0]+"${mode_args[@]}"} \
         --output-dir "$out_dir" \
