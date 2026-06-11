@@ -132,12 +132,6 @@ public:
         _commandHandler = commandHandler;
     }
     
-    bool isConnected() const { return WiFi.status() == WL_CONNECTED; }
-    bool isMQTTConnected() { return _mqttClient.connected(); }
-    
-    const char* getIdentifier() const { return _identifier; }
-    ESP8266WebServer& getServer() { return _server; }
-    
     void httpGet(const String& url, std::function<void(JsonDocument&)> callback) {
         HTTPClient http;
         http.begin(_wifiClient, url);
@@ -320,7 +314,6 @@ private:
         _mqttClient.setServer(_mqttServer, MQTT_PORT);
         _mqttClient.setKeepAlive(10);
         _mqttClient.setBufferSize(2048);
-        // Fix: Change this line to actually call handleMqttMessage
         _mqttClient.setCallback([this](const char* topic, const uint8_t* payload, unsigned int length) {
             this->handleMqttMessage(topic, payload, length);
         });
@@ -368,6 +361,8 @@ private:
             _server.sendHeader("Connection", "close");
             if (_getConfigPageHandler) {
                 _server.send(200, "text/html", _getConfigPageHandler());
+            } else {
+                _server.send(404, "text/plain", "Not found");
             }
         });
         
@@ -503,7 +498,7 @@ private:
         }
         
         DEBUG_PRINTLN(F("[MQTT] Command received:"));
-        serializeJsonPretty(doc, Serial);
+        DEBUG_PRINT_JSON(doc);
         DEBUG_PRINTLN();
         
         if (_commandHandler) {
@@ -658,50 +653,36 @@ private:
             });
         }
         
-        // Dew Point (Celsius)
-        publishConfig("sensor", "dew", [&](JsonObject& root) {
-            root["name"] = F("Dew Point");
-            root["value_template"] = F("{{value_json.dew}}");
-            root["unit_of_measurement"] = F("°C");
-            root["icon"] = F("mdi:water-thermometer");
-            root["unique_id"] = String(_identifier) + F("_dew");
-            root["device_class"] = F("temperature");
-            root["state_class"] = F("measurement");
-        });
-        
-        // Dew Point (Fahrenheit)
-        publishConfig("sensor", "dew_imp", [&](JsonObject& root) {
-            root["name"] = F("Dew Point (F)");
-            root["value_template"] = F("{{value_json.dew_imp}}");
-            root["unit_of_measurement"] = F("°F");
-            root["icon"] = F("mdi:water-thermometer");
-            root["unique_id"] = String(_identifier) + F("_dew_imp");
-            root["device_class"] = F("temperature");
-            root["state_class"] = F("measurement");
-        });
-        
-        // Heat Index (Celsius)
-        publishConfig("sensor", "hi", [&](JsonObject& root) {
-            root["name"] = F("Heat Index");
-            root["value_template"] = F("{{value_json.hi}}");
-            root["unit_of_measurement"] = F("°C");
-            root["icon"] = F("mdi:sun-thermometer");
-            root["unique_id"] = String(_identifier) + F("_hi");
-            root["device_class"] = F("temperature");
-            root["state_class"] = F("measurement");
-        });
-        
-        // Heat Index (Fahrenheit)
-        publishConfig("sensor", "hi_imp", [&](JsonObject& root) {
-            root["name"] = F("Heat Index (F)");
-            root["value_template"] = F("{{value_json.hi_imp}}");
-            root["unit_of_measurement"] = F("°F");
-            root["icon"] = F("mdi:sun-thermometer");
-            root["unique_id"] = String(_identifier) + F("_hi_imp");
-            root["device_class"] = F("temperature");
-            root["state_class"] = F("measurement");
-        });
-        
+        // Derived temperature-class sensors (dew point and heat index, °C and °F)
+        struct DerivedSensor {
+            const char* suffix;
+            const __FlashStringHelper* name;
+            const __FlashStringHelper* unit;
+            const __FlashStringHelper* icon;
+        };
+        const DerivedSensor derivedSensors[] = {
+            {"dew",     F("Dew Point"),      F("°C"), F("mdi:water-thermometer")},
+            {"dew_imp", F("Dew Point (F)"),  F("°F"), F("mdi:water-thermometer")},
+            {"hi",      F("Heat Index"),     F("°C"), F("mdi:sun-thermometer")},
+            {"hi_imp",  F("Heat Index (F)"), F("°F"), F("mdi:sun-thermometer")},
+        };
+        for (const DerivedSensor& d : derivedSensors) {
+            publishConfig("sensor", d.suffix, [&](JsonObject& root) {
+                root["name"] = d.name;
+                String vt;
+                vt.reserve(32);
+                vt = F("{{value_json.");
+                vt += d.suffix;
+                vt += F("}}");
+                root["value_template"] = vt;
+                root["unit_of_measurement"] = d.unit;
+                root["icon"] = d.icon;
+                root["unique_id"] = String(_identifier) + '_' + d.suffix;
+                root["device_class"] = F("temperature");
+                root["state_class"] = F("measurement");
+            });
+        }
+
         // Indoor Air Quality (IAQ)
         publishConfig("sensor", "iaq", [&](JsonObject& root) {
             root["name"] = F("Indoor Air Quality");
@@ -741,44 +722,30 @@ private:
         for (JsonPairConst kv : root) {
             String k = kv.key().c_str();
             if (k == "key") continue;
-            
-            // Handle different value types
+
+            // String values pass through verbatim, numeric values get rounded
+            double value;
             if (kv.value().is<const char*>()) {
                 state[k] = kv.value().as<const char*>();
-                
-                // Try to parse numeric values from strings
-                if (k == "temp") {
-                    temp = atof(kv.value().as<const char*>());
-                    hasTemp = true;
-                } else if (k == "humi") {
-                    humi = atof(kv.value().as<const char*>());
-                    hasHumi = true;
-                } else if (k == "co2") {
-                    co2 = atof(kv.value().as<const char*>());
-                    hasCO2 = true;
-                } else if (k == "pm25") {
-                    pm25 = atof(kv.value().as<const char*>());
-                    hasPM25 = true;
-                }
+                value = atof(kv.value().as<const char*>());
             } else {
-                double value = kv.value().as<double>();
-                // Round to 1 decimal place
+                value = kv.value().as<double>();
                 state[k] = round(value * 10.0) / 10.0;
-                
-                // Extract values for calculations
-                if (k == "temp") {
-                    temp = value;
-                    hasTemp = true;
-                } else if (k == "humi") {
-                    humi = value;
-                    hasHumi = true;
-                } else if (k == "co2") {
-                    co2 = value;
-                    hasCO2 = true;
-                } else if (k == "pm25") {
-                    pm25 = value;
-                    hasPM25 = true;
-                }
+            }
+
+            // Extract values for derived-metric calculations
+            if (k == "temp") {
+                temp = value;
+                hasTemp = true;
+            } else if (k == "humi") {
+                humi = value;
+                hasHumi = true;
+            } else if (k == "co2") {
+                co2 = value;
+                hasCO2 = true;
+            } else if (k == "pm25") {
+                pm25 = value;
+                hasPM25 = true;
             }
         }
         

@@ -110,20 +110,12 @@ public:
         DEBUG_PRINTLN(F("[Config] Saved successfully"));
     }
     
-    void reset() {
-        if (SPIFFS.begin() && SPIFFS.exists("/config.json")) {
-            SPIFFS.remove("/config.json");
-            DEBUG_PRINTLN(F("[Config] Reset to defaults"));
-        }
-    }
-    
     // Getters
     const char* getMqttServer() const { return _mqttServer; }
     const char* getUsername() const { return _username; }
     const char* getPassword() const { return _password; }
     bool isImperialTemp() const { return _imperialTemp; }
     bool isImperialQfe() const { return _imperialQfe; }
-    bool isImperialAlt() const { return _imperialAlt; }
     bool isOfflineMode() const { return _offlineMode; }
     uint8_t getLedBrightness() const { return _ledBrightness; }
     
@@ -139,14 +131,8 @@ public:
     }
     void setImperialTemp(bool value) { _imperialTemp = value; }
     void setImperialQfe(bool value) { _imperialQfe = value; }
-    void setImperialAlt(bool value) { _imperialAlt = value; }
     void setOfflineMode(bool value) { _offlineMode = value; }
     void setLedBrightness(uint8_t value) { _ledBrightness = value; }
-    
-    // For WiFiManager compatibility
-    char* getMqttServerBuffer() { return _mqttServer; }
-    char* getUsernameBuffer() { return _username; }
-    char* getPasswordBuffer() { return _password; }
 
     bool isSPS30Enabled() const { return _sps30Enabled; }
     void setSPS30Enabled(bool enabled) { _sps30Enabled = enabled; }
@@ -166,6 +152,3 @@ private:
     uint8_t _ledBrightness = 200;
     bool _sps30Enabled = true;
 };
-
-// Convenience macro
-#define Config AppConfig::instance()

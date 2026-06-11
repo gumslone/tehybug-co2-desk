@@ -100,16 +100,6 @@ public:
     const char* getI2CAddresses() const { return _i2cAddresses; }
     
     /**
-     * @brief Check if any sensors are available
-     */
-    bool hasAnySensor() const {
-        return (_bmx280 && _bmx280->isAvailable()) ||
-               (_aht20 && _aht20->isAvailable()) ||
-               (_scd4x && _scd4x->isAvailable()) ||
-               (_sps30 && _sps30->isAvailable());
-    }
-    
-    /**
      * @brief Get number of available sensors
      */
     uint8_t getSensorCount() const {
@@ -154,52 +144,11 @@ public:
     }
     
     /**
-     * @brief Get temperature value
-     * @return Temperature in °C, or NAN if not available
-     */
-    float getTemperature() const {
-        if (_sensorData.containsKey("temp")) {
-            return _sensorData["temp"].as<float>();
-        }
-        return NAN;
-    }
-    
-    /**
-     * @brief Get humidity value
-     * @return Humidity in %RH, or NAN if not available
-     */
-    float getHumidity() const {
-        if (_sensorData.containsKey("humi")) {
-            return _sensorData["humi"].as<float>();
-        }
-        return NAN;
-    }
-    
-    /**
-     * @brief Check if PM2.5 sensor is available
-     */
-    bool hasPM25() const { return _sps30 && _sps30->isAvailable(); }
-    
-    /**
-     * @brief Get SCD4x sensor for calibration
-     */
-    SCD4xSensor* getSCD4x() { return _scd4x; }
-    
-    /**
      * @brief Check if SCD4x is available
      */
     bool hasSCD4x() const { return _scd4x && _scd4x->isAvailable(); }
-    
-    /**
-     * @brief Check if temperature sensor is available
-     */
-    bool hasTemperature() const {
-        return (_bmx280 && _bmx280->isAvailable()) ||
-               (_aht20 && _aht20->isAvailable()) ||
-               (_scd4x && _scd4x->isAvailable());
-    }
 
-        /**
+    /**
      * @brief Check if BMX280 is available
      */
     bool hasBMX280() const { return _bmx280 && _bmx280->isAvailable(); }
@@ -213,16 +162,7 @@ public:
      * @brief Check if SPS30 is available
      */
     bool hasSPS30() const { return _sps30 && _sps30->isAvailable(); }
-    
-    /**
-     * @brief Check if humidity sensor is available
-     */
-    bool hasHumidity() const {
-        return (_bmx280 && _bmx280->isAvailable() && _bmx280->isBME280()) ||
-               (_aht20 && _aht20->isAvailable()) ||
-               (_scd4x && _scd4x->isAvailable());
-    }
-    
+
     /**
      * @brief Add imperial unit conversions for temperature
      */
@@ -254,13 +194,6 @@ public:
         }
     }
     
-    /**
-     * @brief Clear all sensor data
-     */
-    void clearData() {
-        _sensorData.clear();
-    }
-
     /**
      * @brief Check if SPS30 sensor is enabled
      * @return True if enabled, false otherwise

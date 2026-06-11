@@ -86,9 +86,7 @@ public:
     }
     
     const char* getName() const override { return "SPS30"; }
-    
-    void setAvailable(bool available) { _available = available; }
-    
+
     /**
      * @brief Enable or disable the SPS30 sensor
      * @param enabled True to enable, false to disable

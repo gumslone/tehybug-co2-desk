@@ -73,42 +73,12 @@ public:
     }
     
     /**
-     * @brief Set callback for left button long press
-     */
-    void onLeftLongClick(ButtonCallback callback) {
-        _onLeftLongClick = callback;
-        _buttonLeft.setLongClickHandler([this](Button2&) {
-            if (_onLeftLongClick) _onLeftLongClick();
-        });
-    }
-    
-    /**
-     * @brief Set callback for right button click
-     */
-    void onRightClick(ButtonCallback callback) {
-        _onRightClick = callback;
-        _buttonRight.setClickHandler([this](Button2&) {
-            if (_onRightClick) _onRightClick();
-        });
-    }
-    
-    /**
      * @brief Set callback for right button long press
      */
     void onRightLongClick(ButtonCallback callback) {
         _onRightLongClick = callback;
         _buttonRight.setLongClickHandler([this](Button2&) {
             if (_onRightLongClick) _onRightLongClick();
-        });
-    }
-    
-    /**
-     * @brief Set callback for mode button click
-     */
-    void onModeClick(ButtonCallback callback) {
-        _onModeClick = callback;
-        _buttonMode.setClickHandler([this](Button2&) {
-            if (_onModeClick) _onModeClick();
         });
     }
     
@@ -130,20 +100,6 @@ public:
     }
     
     /**
-     * @brief Check if right button is currently pressed
-     */
-    bool isRightPressed() const {
-        return digitalRead(ButtonPins::RIGHT) == LOW;
-    }
-    
-    /**
-     * @brief Check if mode button is currently pressed
-     */
-    bool isModePressed() const {
-        return digitalRead(ButtonPins::MODE) == LOW;
-    }
-    
-    /**
      * @brief Wait until left button is released
      */
     void waitForLeftRelease() {
@@ -158,9 +114,6 @@ private:
     Button2 _buttonMode;
     
     ButtonCallback _onLeftClick;
-    ButtonCallback _onLeftLongClick;
-    ButtonCallback _onRightClick;
     ButtonCallback _onRightLongClick;
-    ButtonCallback _onModeClick;
     ButtonCallback _onModeLongClick;
 };

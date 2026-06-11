@@ -14,7 +14,7 @@
  */
 class BMX280Sensor : public ISensor {
 public:
-    BMX280Sensor(uint8_t address = 0x76) : _sensor(address), _address(address) {}
+    BMX280Sensor(uint8_t address = 0x76) : _sensor(address) {}
     
     bool begin() override {
         if (!_sensor.begin()) {
@@ -80,15 +80,9 @@ public:
     const char* getName() const override { return "BMX280"; }
     
     bool isBME280() const { return _isBME; }
-    
-    void setAddress(uint8_t address) {
-        _address = address;
-        _sensor = ErriezBMX280(address);
-    }
 
 private:
     ErriezBMX280 _sensor;
-    uint8_t _address;
     bool _available = false;
     bool _isBME = false;
 };

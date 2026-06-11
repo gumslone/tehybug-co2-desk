@@ -50,7 +50,7 @@ namespace LEDIndex {
 class LEDController {
 public:
     LEDController(uint8_t pin, uint8_t count) 
-        : _strip(count, pin, NEO_GRB + NEO_KHZ800), _pin(pin), _count(count) {}
+        : _strip(count, pin, NEO_GRB + NEO_KHZ800), _count(count) {}
     
     // Prevent copying
     LEDController(const LEDController&) = delete;
@@ -109,56 +109,43 @@ public:
     }
     
     /**
+     * @brief Map a PM2.5 value (µg/m³) to an indicator color
+     */
+    static uint32_t pm25Color(float pm25) {
+        if (pm25 > PM25Levels::MODERATE_MAX) return LEDColors::RED;     // Unhealthy
+        if (pm25 > PM25Levels::GOOD_MAX) return LEDColors::YELLOW;      // Moderate
+        return LEDColors::GREEN;                                        // Good
+    }
+
+    /**
+     * @brief Map a CO2 value (ppm) to an indicator color
+     */
+    static uint32_t co2Color(float co2) {
+        if (co2 > CO2Levels::WARNING_MAX) return LEDColors::RED;
+        if (co2 > CO2Levels::GOOD_MAX) return LEDColors::YELLOW;
+        return LEDColors::GREEN;
+    }
+
+    /**
      * @brief Update PM2.5 indicator on LED 0
      * @param pm25 PM2.5 value in µg/m³
      */
     void updatePM25Indicator(float pm25) {
-        uint32_t color;
-        if (pm25 > PM25Levels::MODERATE_MAX) {
-            color = LEDColors::RED;      // Unhealthy
-        } else if (pm25 > PM25Levels::GOOD_MAX) {
-            color = LEDColors::YELLOW;   // Moderate
-        } else {
-            color = LEDColors::GREEN;    // Good
-        }
-        setPixelColor(LEDIndex::PM25, color);
+        setPixelColor(LEDIndex::PM25, pm25Color(pm25));
     }
-    
-    /**
-     * @brief Update CO2 indicator on LED 1
-     * @param co2 CO2 value in ppm
-     */
-    void updateCO2Indicator(float co2) {
-        uint32_t color;
-        if (co2 > CO2Levels::WARNING_MAX) {
-            color = LEDColors::RED;
-        } else if (co2 > CO2Levels::GOOD_MAX) {
-            color = LEDColors::YELLOW;
-        } else {
-            color = LEDColors::GREEN;
-        }
-        setPixelColor(LEDIndex::CO2, color);
-    }
-    
+
     /**
      * @brief Update both LEDs with CO2 indicator (when PM2.5 not available)
      * @param co2 CO2 value in ppm
      */
     void updateCO2IndicatorBothLEDs(float co2) {
-        uint32_t color;
-        if (co2 > CO2Levels::WARNING_MAX) {
-            color = LEDColors::RED;
-        } else if (co2 > CO2Levels::GOOD_MAX) {
-            color = LEDColors::YELLOW;
-        } else {
-            color = LEDColors::GREEN;
-        }
+        uint32_t color = co2Color(co2);
         _strip.setBrightness(_brightness);
         _strip.setPixelColor(LEDIndex::PM25, color);
         _strip.setPixelColor(LEDIndex::CO2, color);
         _strip.show();
     }
-    
+
     /**
      * @brief Update both air quality indicators
      * @param pm25 PM2.5 value in µg/m³ (use negative to skip)
@@ -166,33 +153,8 @@ public:
      */
     void updateAirQualityIndicators(float pm25, float co2) {
         _strip.setBrightness(_brightness);
-        
-        // Update PM2.5 on LED 0
-        if (pm25 >= 0) {
-            uint32_t pm25Color;
-            if (pm25 > PM25Levels::MODERATE_MAX) {
-                pm25Color = LEDColors::RED;
-            } else if (pm25 > PM25Levels::GOOD_MAX) {
-                pm25Color = LEDColors::YELLOW;
-            } else {
-                pm25Color = LEDColors::GREEN;
-            }
-            _strip.setPixelColor(LEDIndex::PM25, pm25Color);
-        }
-        
-        // Update CO2 on LED 1
-        if (co2 >= 0) {
-            uint32_t co2Color;
-            if (co2 > CO2Levels::WARNING_MAX) {
-                co2Color = LEDColors::RED;
-            } else if (co2 > CO2Levels::GOOD_MAX) {
-                co2Color = LEDColors::YELLOW;
-            } else {
-                co2Color = LEDColors::GREEN;
-            }
-            _strip.setPixelColor(LEDIndex::CO2, co2Color);
-        }
-        
+        if (pm25 >= 0) _strip.setPixelColor(LEDIndex::PM25, pm25Color(pm25));
+        if (co2 >= 0) _strip.setPixelColor(LEDIndex::CO2, co2Color(co2));
         _strip.show();
     }
     
@@ -216,15 +178,9 @@ public:
     void off() {
         colorWipe(LEDColors::OFF, 10);
     }
-    
-    /**
-     * @brief Get the underlying strip for advanced operations
-     */
-    Adafruit_NeoPixel& getStrip() { return _strip; }
 
 private:
     Adafruit_NeoPixel _strip;
-    uint8_t _pin;
     uint8_t _count;
     uint8_t _brightness = 200;
 };

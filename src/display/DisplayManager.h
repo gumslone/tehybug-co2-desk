@@ -10,18 +10,15 @@
 #include <ArduinoJson.h>
 
 // Fonts
-#include <Fonts/FreeSans7pt7b.h>
 #include <Fonts/FreeSans9pt7b.h>
 #include <Fonts/FreeSans12pt7b.h>
 #include <Fonts/FreeSans18pt7b.h>
 #include <Fonts/FreeSans24pt7b.h>
 #include <Fonts/FreeSansBold18pt7b.h>
-#include <Fonts/FreeSansBold24pt7b.h>
 
 // Forward declaration for logo
 extern const unsigned char tehybug_logo_white[];
 extern const unsigned char wifi_icon[];
-extern const unsigned char wifi_icon_small[];
 
 /**
  * @brief Display configuration constants
@@ -71,8 +68,6 @@ public:
      * @return true if initialization successful
      */
     bool begin() {
-        if (!_enabled) return false;
-        
         _display.init();
         _display.setRotation(DisplayConfig::ROTATION);
         _display.fillScreen(GxEPD_WHITE);
@@ -133,40 +128,16 @@ public:
     }
     
     /**
-     * @brief Show centered text message
-     * @param text Text to display centered
-     * @param font Font to use
-     */
-    void showCenteredText(const char* text, const GFXfont* font = &FreeSans18pt7b) {
-        if (!isReady()) return;
-        
-        _display.fillScreen(GxEPD_WHITE);
-        _display.setFont(font);
-        
-        int16_t x1, y1;
-        uint16_t w, h;
-        _display.getTextBounds(text, 0, 0, &x1, &y1, &w, &h);
-        
-        uint16_t x = (_display.width() - w) / 2 - x1;
-        uint16_t y = (_display.height() - h) / 2 - y1;
-        
-        _display.setCursor(x, y);
-        _display.print(text);
-        _display.updateWindow(0, 0, _display.width(), _display.height());
-    }
-    
-    /**
      * @brief Update display with sensor data
      * @param data JSON document with sensor values
      * @param imperialTemp Use Fahrenheit instead of Celsius
      * @param offlineMode Hide WiFi icon in offline mode
      */
     void updateSensorDisplay(const DynamicJsonDocument& data, bool imperialTemp, bool offlineMode) {
-        if (!isReady() || !_updateEnabled) return;
-        
-        // Debug: Print what we received
+        if (!isReady()) return;
+
         DEBUG_PRINTLN(F("[Display] Received data:"));
-        serializeJsonPretty(data, Serial);
+        DEBUG_PRINT_JSON(data);
         DEBUG_PRINTLN();
         
         // Rate limiting
@@ -235,46 +206,13 @@ public:
         DEBUG_PRINTLN(F("[Display] Update complete"));
     }
     
-    /**
-     * @brief Force a full display refresh
-     */
-    void forceFullRefresh() {
-        if (!isReady()) return;
-        performFullRefresh();
-    }
-    
-    /**
-     * @brief Clear the display
-     */
-    void clear() {
-        if (!isReady()) return;
-        _display.fillScreen(GxEPD_WHITE);
-        _display.update();
-    }
-    
-    // Getters and setters
-    void setEnabled(bool enabled) { _enabled = enabled; }
-    bool isEnabled() const { return _enabled; }
-    
-    void setUpdateEnabled(bool enabled) { _updateEnabled = enabled; }
-    bool isUpdateEnabled() const { return _updateEnabled; }
-    
-    bool isInitialized() const { return _initialized; }
-    bool isReady() const { return _enabled && _initialized; }
-    
-    uint16_t getWidth() const { return _display.width(); }
-    uint16_t getHeight() const { return _display.height(); }
-    
-    GxEPD_Class& getDisplay() { return _display; }
-    const GxEPD_Class& getDisplay() const { return _display; }
+    bool isReady() const { return _initialized; }
 
 private:
     GxIO_Class _io;
     GxEPD_Class _display;
-    
-    bool _enabled = true;
+
     bool _initialized = false;
-    bool _updateEnabled = true;
     uint8_t _updateCounter = 100;  // Start high to trigger initial full refresh
     uint32_t _lastUpdateTime = 0;
     
@@ -291,13 +229,6 @@ private:
         delay(500);
     }
     
-    /**
-     * @brief Helper to format and display a float value
-     */
-    void formatFloat(float value, char* buffer, size_t bufSize, uint8_t decimals = 1) {
-        dtostrf(value, 1, decimals, buffer);
-    }
-
     void drawTemperature(const DynamicJsonDocument& data, bool imperial) {
         const char* tempKey = imperial ? "temp_imp" : "temp";
         const char* unit = imperial ? "F" : "C";

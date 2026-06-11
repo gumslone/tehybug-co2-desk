@@ -13,7 +13,7 @@
  * - 1.5" E-Paper display
  * - WS2812 NeoPixel LEDs
  * 
- * @version 10.04.2025
+ * @version 09.03.2026 (see VERSION below)
  */
 
 // ============================================================================
@@ -81,43 +81,38 @@ bool useRemoteSensor = false;
  * @brief Read all sensors and update display
  */
 void readSensorsTask() {
-   sensors.readAll();
-   
-   // Debug: Print sensor data
-   DEBUG_PRINTLN(F("\n[Main] Sensor readings:"));
-   const auto& data = sensors.getData();
-   serializeJsonPretty(data, Serial);
-   DEBUG_PRINTLN();
-   
-   // Handle remote sensor if no local sensors
-   if (useRemoteSensor && !AppConfig::instance().isOfflineMode()) {
-       network.httpGet("http://tehybug.local", [&](JsonDocument& json) {
-           if (json.containsKey("co2")) sensors.addData("co2", json["co2"].as<float>());
-           if (json.containsKey("temp")) sensors.addData("temp", json["temp"].as<float>());
-           if (json.containsKey("humi")) sensors.addData("humi", json["humi"].as<float>());
-           if (json.containsKey("qfe")) sensors.addData("qfe", json["qfe"].as<float>());
-           if (json.containsKey("alt")) sensors.addData("alt", json["alt"].as<float>());
-           if (json.containsKey("pm25")) sensors.addData("pm25", json["pm25"].as<float>());
-       });
-   }
-   
-   // Update LED indicators
-   float pm25 = sensors.getPM25();
-   float co2 = sensors.getCO2();
-   
-   // Debug: Print extracted values
-   DEBUG_PRINTF("[Main] CO2: %.1f, PM2.5: %.1f\n", co2, pm25);
-   
-   if (pm25 >= 0 && co2 >= 0) {
-       leds.updateAirQualityIndicators(pm25, co2);
-   } else if (pm25 >= 0) {
-       leds.updatePM25Indicator(pm25);
-   } else if (co2 >= 0) {
-       leds.updateCO2IndicatorBothLEDs(co2);
-   }
-   
-   // Update display
-   display.updateSensorDisplay(sensors.getData(), AppConfig::instance().isImperialTemp(), AppConfig::instance().isOfflineMode());
+    sensors.readAll();
+
+    DEBUG_PRINTLN(F("\n[Main] Sensor readings:"));
+    DEBUG_PRINT_JSON(sensors.getData());
+    DEBUG_PRINTLN();
+
+    // Handle remote sensor if no local sensors
+    if (useRemoteSensor && !AppConfig::instance().isOfflineMode()) {
+        network.httpGet("http://tehybug.local", [&](JsonDocument& json) {
+            static const char* const remoteKeys[] = {"co2", "temp", "humi", "qfe", "alt", "pm25"};
+            for (const char* key : remoteKeys) {
+                if (json.containsKey(key)) sensors.addData(key, json[key].as<float>());
+            }
+        });
+    }
+
+    // Update LED indicators
+    float pm25 = sensors.getPM25();
+    float co2 = sensors.getCO2();
+
+    DEBUG_PRINTF("[Main] CO2: %.1f, PM2.5: %.1f\n", co2, pm25);
+
+    if (pm25 >= 0 && co2 >= 0) {
+        leds.updateAirQualityIndicators(pm25, co2);
+    } else if (pm25 >= 0) {
+        leds.updatePM25Indicator(pm25);
+    } else if (co2 >= 0) {
+        leds.updateCO2IndicatorBothLEDs(co2);
+    }
+
+    // Update display
+    display.updateSensorDisplay(sensors.getData(), AppConfig::instance().isImperialTemp(), AppConfig::instance().isOfflineMode());
 }
 
 /**
@@ -356,7 +351,6 @@ void initializeNetwork() {
     char identifier[24];
     snprintf(identifier, sizeof(identifier), "TEHYBUG-CO2-%X", ESP.getChipId());
     
-    // Lambda captures by reference to avoid copying - saves stack space
     network.setConfigSaveCallback([](const char* server, const char* user, const char* pass) {
         DEBUG_PRINTLN(F("[Main] Saving new WiFi/MQTT config"));
         DEBUG_PRINTF("Server: %s\nUser: %s\nPass: %s\n", server, user, pass);
@@ -366,11 +360,9 @@ void initializeNetwork() {
         AppConfig::instance().save();
     });
     
-    // Pass const char* directly - no String object creation
-    network.begin(identifier, AppConfig::instance().getMqttServer(), 
+    network.begin(identifier, AppConfig::instance().getMqttServer(),
                  AppConfig::instance().getUsername(), AppConfig::instance().getPassword());
-    
-    // Function pointers instead of std::function - saves ~48 bytes per callback
+
     network.setWebHandlers(
         getMainPageData,
         saveWebConfig,
