@@ -123,7 +123,7 @@ public:
     void setWebHandlers(
         std::function<String()> getMainHandler,
         std::function<void(bool, bool, uint8_t)> saveConfigHandler,
-        std::function<String()> getConfigPageHandler,
+        std::function<const char*()> getConfigPageHandler,
         std::function<void(const JsonDocument&)> commandHandler = nullptr
     ) {
         _getMainHandler = getMainHandler;
@@ -194,7 +194,7 @@ private:
     std::function<String()> _getMainHandler;
     std::function<void(bool, bool, uint8_t)> _saveConfigHandler;
     std::function<void(const JsonDocument&)> _commandHandler;
-    std::function<String()> _getConfigPageHandler;
+    std::function<const char*()> _getConfigPageHandler;  // returns PROGMEM HTML
     
     WiFiManagerParameter* _paramMqttServer = nullptr;
     WiFiManagerParameter* _paramMqttUser = nullptr;
@@ -360,7 +360,9 @@ private:
         _server.on("/config", HTTP_GET, [this]() {
             _server.sendHeader("Connection", "close");
             if (_getConfigPageHandler) {
-                _server.send(200, "text/html", _getConfigPageHandler());
+                // Page lives in PROGMEM; send_P streams it from flash
+                // without copying it into a heap String first.
+                _server.send_P(200, PSTR("text/html"), _getConfigPageHandler());
             } else {
                 _server.send(404, "text/plain", "Not found");
             }

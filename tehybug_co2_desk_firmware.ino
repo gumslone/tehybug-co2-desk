@@ -160,9 +160,9 @@ void saveWebConfig(bool imperialTemp, bool imperialQfe, uint8_t ledBrightness) {
 }
 
 /**
- * @brief Get config page HTML
+ * @brief Get config page HTML (PROGMEM)
  */
-String getConfigPage() {
+const char* getConfigPage() {
     return configPage;
 }
 
