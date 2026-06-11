@@ -1,0 +1,5 @@
+#pragma once
+
+const char configPage[] PROGMEM = R"=====(
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Config</title><style>body{font-family:Arial;max-width:400px;margin:20px auto;padding:15px}label{display:block;margin:10px 0}input[type=number]{width:100%;padding:8px}input[type=submit]{width:100%;padding:10px;margin-top:15px;background:#1FA67A;color:#fff;border:none}</style></head><body><h2>TeHyBug Config</h2><form action="/config" method="POST"><label><input type="checkbox" name="imperial_temp"> Temp °F</label><label><input type="checkbox" name="imperial_qfe"> Pressure inHg</label><label>LED Brightness (0-255)<input type="number" value="200" min="0" max="255" name="led_brightness"></label><input type="submit" value="Save"></form></body></html>
+)=====";

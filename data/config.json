@@ -1,0 +1,10 @@
+{
+    "mqtt_server": "mqtt.example.com",
+    "username": "",
+    "password": "",
+    "imperial_temp": false,
+    "imperial_qfe": false,
+    "imperial_alt": false,
+    "offline_mode": false,
+    "led_brightness": 200
+}
